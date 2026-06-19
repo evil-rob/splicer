@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -34,19 +35,27 @@ int main(int argc, char *argv[])
 ssize_t cat(char *fn)
 {
     FILE *input = stdin;
+    bool is_file = false;
 
     if ( fn )
     {
-        // Filename string provided. Stat it to make sure it's a file.
+        if ( (input = fopen(fn, "r")) == NULL )
+        {
+            // Error opening file.
+            perror(fn);
+            return -1;
+        }
+
+        // Stat file to make sure it's a regular file.
+        int fd = fileno(input);
         struct stat statbuf;
-        if ( stat(fn, &statbuf) != 0 )
+        if ( fstat(fd, &statbuf) != 0 )
         {
             // Error trying to stat file.
             perror(fn);
             return -1;
         }
 
-        //if ( (statbuf.st_mode & S_IFMT) != S_IFREG )
         if ( ! S_ISREG(statbuf.st_mode) )
         {
             // Not a regular file. Probably a directory.
@@ -54,13 +63,8 @@ ssize_t cat(char *fn)
             return -1;
         }
 
-        // File is a regular file. Lets open it for reading.
-        if ( (input = fopen(fn, "r")) == NULL )
-        {
-            // Error opening file.
-            perror(fn);
-            return -1;
-        }
+        is_file = true;
+
     }
 
     char buffer[BUFFER_SIZE];
@@ -73,5 +77,6 @@ ssize_t cat(char *fn)
         fputs(buffer, stdout);
     }
 
+    if (is_file) fclose(input);
     return total;
 }
