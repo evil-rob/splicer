@@ -3,9 +3,6 @@
 #include <string.h>
 #include <stdbool.h>
 #include <errno.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 #define BUFFER_SIZE 64
 
@@ -32,26 +29,32 @@ int main(int argc, char *argv[])
 
 FILE * open_helper(char *fn)
 {
-    FILE *fp = NULL;
+    FILE *fp = fopen(fn, "r");
 
-    if ( (fp = fopen(fn, "r")) == NULL ) goto cleanup_none; // Error opening file.
-
-    // Stat file to make sure it's a regular file.
-    int fd = fileno(fp);
-    struct stat statbuf;
-    if ( fstat(fd, &statbuf) != 0 ) goto cleanup_file; // Error trying to stat file.
-
-    if ( ! S_ISREG(statbuf.st_mode) )
+    if (fp == NULL)
     {
-        // Not a regular file. Probably a directory.
-        fprintf(stderr, "%s: Is not a regular file\n", fn);
+        // Error opening file.
+        perror(fn);
         goto cleanup_none;
     }
 
+    // Test if reading the file causes an error. On Linux, an error
+    // indicates we possibly called fopen() on a directory.
+    int c = fgetc(fp);
+    if ( c == EOF && ferror(fp) )
+    {
+        fprintf(stderr, "%s: %s: Unexpected EOF\n", prog, fn);
+        goto cleanup_file;
+    }
+
+    // We successfully read a character from the stream.
+    // Put it back on the stream and return successfully.
+    ungetc(c, fp);
     goto cleanup_none;
 
 cleanup_file:
     fclose(fp);
+    fp = NULL;
 cleanup_none:
     return fp;
 }
