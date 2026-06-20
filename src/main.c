@@ -30,45 +30,48 @@ int main(int argc, char *argv[])
     return status;
 }
 
+FILE * open_helper(char *fn)
+{
+    FILE *fp = NULL;
+
+    if ( (fp = fopen(fn, "r")) == NULL ) goto cleanup_none; // Error opening file.
+
+    // Stat file to make sure it's a regular file.
+    int fd = fileno(fp);
+    struct stat statbuf;
+    if ( fstat(fd, &statbuf) != 0 ) goto cleanup_file; // Error trying to stat file.
+
+    if ( ! S_ISREG(statbuf.st_mode) )
+    {
+        // Not a regular file. Probably a directory.
+        fprintf(stderr, "%s: Is not a regular file\n", fn);
+        goto cleanup_none;
+    }
+
+    goto cleanup_none;
+
+cleanup_file:
+    fclose(fp);
+cleanup_none:
+    return fp;
+}
+
 /* Reads and prints a file line by line. If NULL is the argument provided, 
  * get input from stdin instead of file. */
 ssize_t cat(char *fn)
 {
     FILE *input = stdin;
     bool is_file = false;
-
-    if ( fn )
-    {
-        if ( (input = fopen(fn, "r")) == NULL )
-        {
-            // Error opening file.
-            perror(fn);
-            return -1;
-        }
-
-        // Stat file to make sure it's a regular file.
-        int fd = fileno(input);
-        struct stat statbuf;
-        if ( fstat(fd, &statbuf) != 0 )
-        {
-            // Error trying to stat file.
-            perror(fn);
-            return -1;
-        }
-
-        if ( ! S_ISREG(statbuf.st_mode) )
-        {
-            // Not a regular file. Probably a directory.
-            fprintf(stderr, "%s: Is not a regular file\n", fn);
-            return -1;
-        }
-
-        is_file = true;
-
-    }
-
     char buffer[BUFFER_SIZE];
     size_t total = 0;
+
+    if ( fn && strcmp(fn, "-") )
+    {
+        // If file couldn't be opened, return with failure
+        if ( (input = open_helper(fn)) == NULL ) return -1;
+
+        is_file = true;
+    }
 
     while ( fgets(buffer, sizeof(buffer), input) )
     {
