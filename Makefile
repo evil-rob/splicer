@@ -1,19 +1,36 @@
-CC=gcc
-CFLAGS=-Wall -Wextra -Wpedantic
-LIBS=
-SDIR=src
-ODIR=obj
-_OBJ = main.o
-OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
+CC        := gcc
+CFLAGS    := -Wall -Wextra -Wpedantic
+BUILD     := debug
+BUILD_DIR := build/$(BUILD)
+TARGET    := $(BUILD_DIR)/splicer
+SRCS      := $(wildcard src/*.c)
+OBJS      := $(SRCS:src/%.c=$(BUILD_DIR)/%.o)
 
-$(ODIR)/%.o: $(SDIR)/%.c
-	[ -d $(ODIR) ] || mkdir -p $(ODIR)
-	$(CC) -c -o $@ $< $(CFLAGS)
+ifeq ($(BUILD),release)
+	CFLAGS += -O3 -DNDEBUG
+else
+	CFLAGS += -g -O0
+endif
 
-splicer: $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+.PHONY: all debug release clean
 
-.PHONY: clean
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $^ -o $@
+	@ln -sf $(TARGET) $(BUILD)
+
+$(BUILD_DIR)/%.o: src/%.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+release:
+	$(MAKE) BUILD=release
+
+debug:
+	$(MAKE) BUILD=debug
 
 clean:
-	rm -rf $(ODIR) splicer
+	rm -rf build
+	find -type l -delete

@@ -37,15 +37,12 @@ ssize_t cat(char *fn)
 
     if ( fn )
     {
-        char *msg = malloc(strlen(prog) + strlen(fn) + 3);
-        sprintf(msg, "%s: %s", prog, fn);
-
         // Filename string provided. Stat it to make sure it's a file.
         struct stat statbuf;
         if ( stat(fn, &statbuf) != 0 )
         {
             // Error trying to stat file.
-            perror(msg);
+            perror(fn);
             return -1;
         }
 
@@ -53,7 +50,7 @@ ssize_t cat(char *fn)
         if ( ! S_ISREG(statbuf.st_mode) )
         {
             // Not a regular file. Probably a directory.
-            fprintf(stderr, "%s: Is not a regular file\n", msg);
+            fprintf(stderr, "%s: Is not a regular file\n", fn);
             return -1;
         }
 
@@ -61,7 +58,7 @@ ssize_t cat(char *fn)
         if ( (input = fopen(fn, "r")) == NULL )
         {
             // Error opening file.
-            perror(msg);
+            perror(fn);
             return -1;
         }
     }

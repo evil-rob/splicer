@@ -1,3 +1,4 @@
-splicer
+debug
+release
 Session.vim
-obj/*
+build/*
