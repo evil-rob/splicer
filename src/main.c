@@ -20,9 +20,18 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    int status = 0;
+    int status = 0; // Incremented on error.
     for (int i = 1; i <= argc-1; i++)
-        status = cat(argv[i]) < 0 ? 1 + status : status;
+    {
+        /* If "-" is supplied as an argument, that is a signal that input
+         * is stdin, so initialize *fn to NULL. Otherwise initialize *fn
+         * to argv[i].
+         * */
+        char *fn = strcmp(argv[i],"-") ? argv[i] : NULL;
+
+        // If cat() returns -1, increment status.
+        status = cat(fn) < 0 ? 1 + status : status;
+    }
 
     return status;
 }
@@ -60,21 +69,22 @@ cleanup_none:
 }
 
 /* Reads and prints a file line by line. If NULL is the argument provided, 
- * get input from stdin instead of file. */
+ * get input from stdin instead of file. Returns the number of bytes read
+ * or -1 if there was an error.
+ * */
 ssize_t cat(char *fn)
 {
-    FILE *input = stdin;
-    bool is_file = false;
+    /* input will be a stream from the file provided as fn. If fn is NULL,
+     * then input will be stdin. If open_helper() returned NULL, then there
+     * was a problem opening the file.
+     * */
+    FILE *input = fn ? open_helper(fn) : stdin;
+
+    // If file couldn't be opened, return with failure
+    if ( input == NULL ) return -1;
+    
     char buffer[BUFFER_SIZE];
     size_t total = 0;
-
-    if ( fn && strcmp(fn, "-") )
-    {
-        // If file couldn't be opened, return with failure
-        if ( (input = open_helper(fn)) == NULL ) return -1;
-
-        is_file = true;
-    }
 
     while ( fgets(buffer, sizeof(buffer), input) )
     {
@@ -83,6 +93,6 @@ ssize_t cat(char *fn)
         fputs(buffer, stdout);
     }
 
-    if (is_file) fclose(input);
+    if ( input != stdin ) fclose(input);
     return total;
 }
