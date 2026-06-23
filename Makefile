@@ -4,6 +4,7 @@ BUILD     := debug
 BUILD_DIR := build/$(BUILD)
 TARGET    := $(BUILD_DIR)/splicer
 SRCS      := $(wildcard src/*.c)
+HDRS      := $(wildcard src/*.h)
 OBJS      := $(SRCS:src/%.c=$(BUILD_DIR)/%.o)
 
 ifeq ($(BUILD),release)
@@ -21,7 +22,7 @@ $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) $^ -o $@
 	@ln -sf $(TARGET) $(BUILD)
 
-$(BUILD_DIR)/%.o: src/%.c
+$(BUILD_DIR)/%.o: src/%.c $(HDRS)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
