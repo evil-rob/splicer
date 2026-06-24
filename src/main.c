@@ -11,8 +11,8 @@ int main(int argc, char *argv[])
 
     if (argc == 1)
     {
-        // No files in argument list. Call cat() using stdin.
-        cat(NULL);
+        // No files in argument list. Call process_file() using stdin.
+        process_file(NULL);
         return 0;
     }
 
@@ -25,8 +25,8 @@ int main(int argc, char *argv[])
          * */
         char *fn = strcmp(argv[i],"-") ? argv[i] : NULL;
 
-        // If cat() returns -1, increment status.
-        status = cat(fn) < 0 ? 1 + status : status;
+        // If process_file() returns -1, increment status.
+        status = process_file(fn) < 0 ? 1 + status : status;
     }
 
     return status;

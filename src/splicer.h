@@ -4,4 +4,4 @@
 
 extern char *prog;
 
-ssize_t cat(char *);
+ssize_t process_file(char *);

@@ -1,4 +1,4 @@
-// cat.c
+// process_file.c
 
 #include <stdio.h>
 #include <string.h>
@@ -13,7 +13,7 @@ FILE * open_helper(char *);
  * get input from stdin instead of file. Returns the number of bytes read
  * or -1 if there was an error.
  * */
-ssize_t cat(char *fn)
+ssize_t process_file(char *fn)
 {
     /* input will be a stream from the file provided as fn. If fn is NULL,
      * then input will be stdin. If open_helper() returned NULL, then there
@@ -50,7 +50,7 @@ FILE * open_helper(char *fn)
     }
 
     // Test if reading the file causes an error. On Linux, an error
-    // indicates we possibly called fopen() on a directory.
+    // indiprocess_filees we possibly called fopen() on a directory.
     int c = fgetc(fp);
     if ( c == EOF && ferror(fp) )
     {
