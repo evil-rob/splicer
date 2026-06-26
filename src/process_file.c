@@ -65,35 +65,41 @@ ssize_t process_file(char *in_fn, char *out_fn)
                 state = QUOTED;
         }
 
-        switch (state)
+        do
         {
-            case TEXT:
-                total += nread;
-                fputs(buffer, output);
-                continue;
+            switch (state)
+            {
+                case TEXT:
+                    total += nread;
+                    fputs(buffer, output);
+                    break;
 
-            case INCLUDE:
-                char *include_fn = strtok(NULL, "}\n");
-                if ( include_fn == NULL )
-                {
-                    state = ERROR;
-                    err_str = "Bad or missing filename";
-                    continue;
-                }
-                fprintf(output, "Including %s\n", include_fn);
-                break;
+                case INCLUDE:
+                    char *include_fn = strtok(NULL, "}\n");
+                    if ( include_fn )
+                        fprintf(output, "Including %s\n", include_fn);
+                    else
+                    {
+                        state = ERROR;
+                        err_str = "Bad or missing filename";
+                    }
+                    break;
 
-            case BINARY:
-                fputs("Binary not implemented yet\n", stderr);
-                break;
-            case QUOTED:
-                fputs("Quoted Printable not implemented yet\n", stderr);
-                break;
-            case ERROR:
-                fprintf(stderr, "%s: %s: %s\n", prog, in_fn ? in_fn : "stdin", err_str);
-                err_str = "";
+                case BINARY:
+                    fputs("Binary not implemented yet\n", stderr);
+                    break;
+
+                case QUOTED:
+                    fputs("Quoted Printable not implemented yet\n", stderr);
+                    break;
+
+                case ERROR:
+                    fprintf(stderr, "%s: %s: %s\n", prog, in_fn ? in_fn : "stdin", err_str);
+                    err_str = "";
+                    state = TEXT;
+            }
         }
-        state = TEXT;
+        while ( state == ERROR );
     }
 
     if ( input != stdin ) fclose(input);
