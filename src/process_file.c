@@ -6,7 +6,7 @@
 #include "splicer.h"
 #include "stack.h"
 
-#define BUFFER_SIZE 64
+#define BUFFER_SIZE 512
 
 FILE * open_helper(char *);
 
@@ -26,19 +26,19 @@ ssize_t process_file(char *in_fn, char *out_fn)
     // If file couldn't be opened, return with failure
     if ( input == NULL ) return -1;
     
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_SIZE * 2];
     char *err_str = "";
     size_t total = 0;
     enum states state = TEXT;
 
     do {
-        while ( fgets(buffer, sizeof(buffer), input) )
+        while ( fgets(buffer, sizeof(buffer)/2, input) )
         {
             /* Scan line to see if there is a directive. If there is
              * nothing to interpret, then continue processing file.
              * */
 
-            size_t nread = strnlen(buffer, sizeof(buffer));
+            size_t nread = strnlen(buffer, sizeof(buffer)/2);
 
             /* Get the last character if the string. The buffer might contain a
              * newline character. If the newline is present, the last character
@@ -73,21 +73,14 @@ ssize_t process_file(char *in_fn, char *out_fn)
                         break;
 
                     case PARSE:
-                        // Make copy of string on the heap
-                        str = malloc(nread + 1);
-                        if ( str == NULL )
-                        {
-                            err_str = "Out of memory";
-                            state = ERROR;
-                            break;
-                        }
-                        strcpy(str, buffer);
+                        // Make copy of string at &buffer[BUFFER_SIZE]
+                        strcpy(buffer + BUFFER_SIZE, buffer);
                         /* *end points to the last character in the buffer
                          * preceeding the newline (if present). Use end to
-                         * calculate the offset into str to remove the nl.
+                         * calculate the offset into copy to remove the nl.
                          * */
-                        str[end - buffer + 1] = '\0';
-                        char* token = strtok(str, "{$ }");
+                        end[BUFFER_SIZE] = '\0';
+                        char* token = strtok(buffer + BUFFER_SIZE, "{$ }");
                         if ( strcmp(token, "I") == 0 )
                         {
                             state = INCLUDE;
@@ -99,7 +92,6 @@ ssize_t process_file(char *in_fn, char *out_fn)
                             state = QUOTED;
                         else
                             state = REJECT;
-                        free(str);
                         break;
 
                     case INCLUDE:
@@ -125,8 +117,7 @@ ssize_t process_file(char *in_fn, char *out_fn)
                         state = TEXT;
                         goto INCLUDE_next;
 INCLUDE_err_and_break:  state = ERROR;
-INCLUDE_next:           free(str);
-                        break;
+INCLUDE_next:           break;
 
                     case BINARY: // TODO
                     case QUOTED: // TODO
