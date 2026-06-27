@@ -12,7 +12,7 @@ enum { CLEAR, OVERFLOW, UNDERFLOW } stack_err;
 
 void push(void *p)
 {
-    if ( top >= MAX_DEPTH )
+    if ( top >= MAX_DEPTH - 1 )
     {
         stack_err = OVERFLOW;
         return;
