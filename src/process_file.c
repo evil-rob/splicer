@@ -42,9 +42,13 @@ ssize_t process_file(char *in_fn, char *out_fn)
 
             /* Get the last character if the string. The buffer might contain a
              * newline character. If the newline is present, the last character
-             * is at buffer[nread-2], else buffer[nread-1].
+             * is at buffer[nread-2], else buffer[nread-1]. If the buffer only
+             * contains a single character (nl or other), end will point to the
+             * first and only character.
              * */
-            char *end = buffer + nread - (buffer[nread-1] == '\n' ? 2 : 1);
+            char *end = buffer;
+            if ( nread > 1 )
+                end = buffer + nread - (buffer[nread-1] == '\n' ? 2 : 1);
             
             /* A valid directive must be no less than 6 characters, start with
              * "{$", and then one of the following and end with '}':
