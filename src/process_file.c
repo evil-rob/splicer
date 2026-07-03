@@ -9,7 +9,7 @@
 #define BUFFER_SIZE 512
 #define MAX_DEPTH 4
 
-FILE * open_helper(char *);
+FILE * open_helper(char *, char *);
 
 enum states { TEXT, PARSE, INCLUDE, BINARY, QUOTED, REJECT, ERROR };
 
@@ -21,11 +21,11 @@ enum states { TEXT, PARSE, INCLUDE, BINARY, QUOTED, REJECT, ERROR };
  * */
 ssize_t process_file(char *in_fn, char *out_fn)
 {
-    FILE *input = in_fn ? open_helper(in_fn) : stdin;
-    FILE *output = out_fn ? stdout : stdout;
+    FILE *input = in_fn ? open_helper(in_fn, "r") : stdin;
+    FILE *output = out_fn ? open_helper(out_fn, "a") : stdout;
 
     // If file couldn't be opened, return with failure
-    if ( input == NULL ) return -1;
+    if ( input == NULL || output == NULL ) return -1;
     
     char buffer[BUFFER_SIZE * 2];
     char *err_str = "";
@@ -114,7 +114,7 @@ ssize_t process_file(char *in_fn, char *out_fn)
                          * error state since open_helper() handles the failure.
                          * */
                         push(fstack, &input);
-                        input = open_helper(include_fn);
+                        input = open_helper(include_fn, "r");
                         if ( input == NULL ) input = *(FILE **)pop(fstack);
                         state = TEXT;
                         goto INCLUDE_next;
@@ -145,13 +145,15 @@ INCLUDE_next:           break;
     } while ( input );
     if ( fstack )
         free(fstack);
+    if ( output != stdout )
+        fclose(output);
 
     return total;
 }
 
-FILE * open_helper(char *fn)
+FILE * open_helper(char *fn, char *mode)
 {
-    FILE *fp = fopen(fn, "r");
+    FILE *fp = fopen(fn, mode);
 
     if (fp == NULL)
     {
@@ -160,18 +162,20 @@ FILE * open_helper(char *fn)
         goto cleanup_none;
     }
 
-    // Test if reading the file causes an error. On Linux, an error
-    // indiprocess_filees we possibly called fopen() on a directory.
-    int c = fgetc(fp);
-    if ( c == EOF && ferror(fp) )
+    if ( strcmp(mode, "r") == 0 )
     {
-        fprintf(stderr, "%s: %s: Unexpected EOF\n", prog, fn);
-        goto cleanup_file;
+        // Test if reading the file causes an error. On Linux, an error
+        // indicates we possibly called fopen() on a directory.
+        int c = fgetc(fp);
+        if ( c == EOF && ferror(fp) )
+        {
+            fprintf(stderr, "%s: %s: Unexpected EOF\n", prog, fn);
+            goto cleanup_file;
+        }
+        // We successfully read a character from the stream.
+        // Put it back on the stream and return successfully.
+        ungetc(c, fp);
     }
-
-    // We successfully read a character from the stream.
-    // Put it back on the stream and return successfully.
-    ungetc(c, fp);
     goto cleanup_none;
 
 cleanup_file:
