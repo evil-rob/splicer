@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
         char *fn = strcmp(argv[i],"-") ? argv[i] : NULL;
 
         // If process_file() returns -1, increment status.
-        status = process_file(fn, NULL) < 0 ? 1 + status : status;
+        status += process_file(fn, NULL) < 0 ? 1 : 0;
     }
 
     return status;
