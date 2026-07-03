@@ -7,6 +7,7 @@
 #include "stack.h"
 
 #define BUFFER_SIZE 512
+#define MAX_DEPTH 4
 
 FILE * open_helper(char *);
 
@@ -31,6 +32,7 @@ ssize_t process_file(char *in_fn, char *out_fn)
     size_t total = 0;
     enum states state = TEXT;
 
+    Stack_t *fstack = stack_create(MAX_DEPTH, sizeof(FILE *));
     do {
         while ( fgets(buffer, sizeof(buffer)/2, input) )
         {
@@ -101,7 +103,7 @@ ssize_t process_file(char *in_fn, char *out_fn)
                             err_str = "Bad or missing filename";
                             goto INCLUDE_err_and_break;
                         }
-                        if ( stack_full() )
+                        if ( stack_full(fstack) )
                         {
                             err_str = "Max include depth exceeded";
                             goto INCLUDE_err_and_break;
@@ -111,9 +113,9 @@ ssize_t process_file(char *in_fn, char *out_fn)
                          * stream off if the stack. No need to change to an
                          * error state since open_helper() handles the failure.
                          * */
-                        push(input);
+                        push(fstack, &input);
                         input = open_helper(include_fn);
-                        if ( input == NULL ) input = pop();
+                        if ( input == NULL ) input = *(FILE **)pop(fstack);
                         state = TEXT;
                         goto INCLUDE_next;
 INCLUDE_err_and_break:  state = ERROR;
@@ -139,8 +141,10 @@ INCLUDE_next:           break;
         if ( input != stdin )
             fclose(input);
         // pop() returns NULL when no more files to process
-        input = pop();
+        input = stack_empty(fstack) ? NULL : *(FILE **)pop(fstack);
     } while ( input );
+    if ( fstack )
+        free(fstack);
 
     return total;
 }
