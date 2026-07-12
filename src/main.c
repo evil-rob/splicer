@@ -6,6 +6,7 @@
 #include "splicer.h"
 
 char *prog;
+const char *ver = "0.1.0";
 
 int main(int argc, char *argv[])
 {
@@ -53,6 +54,8 @@ void parse_args(int *args, int argc, char **argv)
     {
         if ( strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0 )
             goto cleanup_and_usage;
+        if ( strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0 )
+            goto cleanup_and_ver;
         if ( strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--output") == 0 )
         {
             // Look ahead to see if an argument for "-o" was given. If missing
@@ -70,13 +73,16 @@ void parse_args(int *args, int argc, char **argv)
     }
     return;
 
+cleanup_and_ver:
+    printf("%s v%s\n", prog, ver);
+    goto cleanup;
 cleanup_and_usage:
+    fprintf(stderr, "Usage: %s [-o|--output <file>] [file...]\n"
+                    "       %s -h|--help\n"
+                    "       %s -v|--version\n",
+                    prog, prog, prog
+            );
+cleanup:
     free(args);
-    print_usage(status);
-}
-
-void print_usage(int status)
-{
-    fprintf(stderr, "Usage %s [-o|--output <file>] [file...]\n", prog);
     exit(status);
 }
