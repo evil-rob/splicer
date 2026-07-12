@@ -144,7 +144,7 @@ INCLUDE_next:           break;
         input = stack_empty(fstack) ? NULL : *(FILE **)pop(fstack);
     } while ( input );
     if ( fstack )
-        free(fstack);
+        stack_destroy(&fstack);
     if ( output != stdout )
         fclose(output);
 

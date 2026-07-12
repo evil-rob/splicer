@@ -7,70 +7,79 @@
 #include "stack.h"
 
 typedef struct stack {
-    size_t size[2];
+    size_t size;
+    size_t element_size;
     int top;
     enum { CLEAR, OVERFLOW, UNDERFLOW } error;
-    unsigned char array[];
+    unsigned char data[];
 } Stack_t;
 
 Stack_t *stack_create(size_t size, size_t element_size)
 {
-    Stack_t *stack = malloc(sizeof(Stack_t) + sizeof(uint8_t) * element_size * size);
+    Stack_t *stack = malloc(sizeof(Stack_t) + element_size * size);
     if ( stack )
     {
-        stack->size[0] = size;
-        stack->size[1] = element_size;
-        stack->top = -element_size;
+        stack->size = size;
+        stack->element_size = element_size;
+        stack->top = -1;
         stack->error = CLEAR;
     }
     return stack;
 }
 
+void stack_destroy(Stack_t **stack)
+{
+    if ( stack == NULL ) return;
+    free(*stack);
+    *stack = NULL;
+}
+
 void push(Stack_t *stack, void *p)
 {
+    if ( stack == NULL ) return;
     if ( stack_full(stack) )
     {
-        if ( stack )
-            stack->error = OVERFLOW;
+        stack->error = OVERFLOW;
         return;
     }
-    stack->top += stack->size[1];
-    memcpy(stack->array + stack->top, p, stack->size[1]);
+    memcpy(&stack->data[++stack->top * stack->element_size], p, stack->element_size);
 }
 
 void *pop(Stack_t *stack)
 {
+    if ( stack == NULL ) return NULL;
     if ( stack_empty(stack) )
     {
-        if ( stack )
-            stack->error = UNDERFLOW;
+        stack->error = UNDERFLOW;
         return NULL;
     }
-    void *p = stack->array + stack->top;
-    stack->top -= stack->size[1];
-    return p;
+    return &stack->data[stack->top-- * stack->element_size];
 }
 
 char *stack_gerr(Stack_t *stack)
 {
+    char *ret = NULL;
+    if ( stack == NULL ) return ret;
     switch (stack->error)
     {
-        default:        return "";
-        case OVERFLOW:  return "Stack overflow";
-        case UNDERFLOW: return "Stack underflow";
+        case OVERFLOW:  ret = "Stack overflow";  break;
+        case UNDERFLOW: ret = "Stack underflow"; break;
+        default:        ret = "";                break;
     }
+    stack->error = CLEAR;
+    return ret;
 }
 
 void stack_perr(Stack_t *stack, char *msg)
 {
     char *error = stack_gerr(stack);
-    fprintf(stderr, "%s: %s\n", msg, error);
+    if ( error )
+        fprintf(stderr, "%s: %s\n", msg, error);
 }
 
 bool stack_full(Stack_t *stack)
 {
-    return stack ?
-        stack->top == (int)((stack->size[0] - 1) * stack->size[1]) : 1;
+    return stack ? stack->top >= (int)(stack->size - 1) : true;
 }
-bool stack_empty(Stack_t *stack) { return stack?stack->top < 0 : 1; }
-bool stack_ckerr(Stack_t *stack) { return stack?stack->error!=CLEAR:0; }
+bool stack_empty(Stack_t *stack) { return stack?stack->top < 0 : true; }
+bool stack_ckerr(Stack_t *stack) { return stack?stack->error!=CLEAR:false; }

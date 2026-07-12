@@ -12,6 +12,11 @@ typedef struct stack Stack_t;
  */
 Stack_t *stack_create(size_t, size_t);
 
+/* stack_destroy(): Deallocates memory used by the stack. Takes a pointer to
+ * a pointer to a Stack_t. After calling free, *stack is set to NULL.
+ */
+void stack_destroy(Stack_t **);
+
 /* push(): takes a pointer to a Stack_t and
  * a pointer to the data to push onto the stack.
  * Does not return anything.
@@ -35,7 +40,10 @@ bool stack_empty(Stack_t *);
 /* stack_ckerr(): checks if there is an error condition set */
 bool stack_ckerr(Stack_t *);
 
-/* stack_gerr(): returns a cstring indicating an error condition */
+/* stack_gerr(): returns a cstring indicating an error condition.
+ * If no error is set, then an empty string is returned. The error
+ * is cleared before returning.
+ */
 char *stack_gerr(Stack_t *);
 
 /* stack_perr(): prints the cstring argument and the current error condition */
