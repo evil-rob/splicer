@@ -1,0 +1,73 @@
+.TH SPLICER 1 "July 2026" "v0.1.0" "User Commands"
+.SH NAME
+splicer \- stream-based file macro preprocessor and text splicer
+.SH SYNOPSIS
+.SY
+.B splicer
+[\fB\-o\fR|\fB\-\-output\fR \fIoutput_file\fR] [\fIfile\fR ...]
+.YS
+.SY
+.B splicer
+\fB\-h\fR|\fB\-\-help\fR
+.YS
+.SY
+.B splicer
+\fB\-v\fR|\fB\-\-version\fR
+.YS
+.SH DESCRIPTION
+.B splicer
+reads a list of input files line by line, executing nested macro directives in-stream, and outputs the aggregated result. If a file path matches standard directives, it evaluates them inline.
+.PP
+If no input files are specified, or if an argument is given as a single dash (\fB\-\fR), \fBsplicer\fR reads from standard input. If no output file is designated via the \fB\-o\fR or \fB\-\-output\fR flags, all processed streams are written directly to standard output.
+.SH OPTIONS
+.TP
+.BR \-o ", " \-\-output " \fIoutput_file\fR"
+Direct the combined output stream into \fIoutput_file\fR instead of standard output.
+.TP
+.I file...
+A list of files to be sequentially processed. 
+.TP
+.BR \-v ", " \-\-version
+Display version.
+.TP
+.BR \-h ", " \-\-help
+Display help.
+.SH DIRECTIVES
+Directives must occupy an entire line by themselves. They are formatted using a strict structure: \fB{$X \fIargument\fB}\fR, where \fBX\fR represents the filter mode type.
+.TP
+.BI "{$I " file "}"
+.B Include Filter.
+Recursively suspends processing of the current file stream, opens the specified \fIfile\fR, and splices its contents entirely into the output stream. Once EOF is met on the target file, processing of the parent file resumes immediately. Maximum nesting stack depth is 4.
+.TP
+.BI "{$B " file "}"
+.B Base64 Binary Filter (Planned).
+Opens a raw binary \fIfile\fR, translates its data payload into an ASCII-safe Base64 representation block, and prints it inline.
+.TP
+.BI "{$Q " file "}"
+.B Quoted-Printable Filter (Planned).
+Encodes the contents of the target text \fIfile\fR using quoted-printable data transfer format encoding.
+.SH EXIT STATUS
+.TP
+.B 0
+Success. All input files and nested macro pipelines resolved completely without system faults.
+.TP
+.B >0
+Failure. Occurs if an unexpected system macro fault happened, file permissions failed during an environment check, or the nesting execution frame overflowed its maximum bounds.
+.SH EXAMPLES
+Combine a primary markdown specification file containing multiple split section assets into a clean master file:
+.RS
+.EX
+splicer -o master_documentation.md main.md
+.EE
+.RE
+.PP
+Pipe a live template dynamically from a standard data generation script stream into an active compiler layer:
+.RS
+.EX
+cat document_boilerplate.tmpl | splicer -
+.EE
+.RE
+.SH AUTHORS
+Written by evil-rob.
+.SH BUGS
+Report bugs and track codebase issues securely at <https://github.com/evil-rob/splicer>.

@@ -19,15 +19,15 @@ libc
 
 1. Clone this repository
 2. cd into your local cloned repository
-3. make
+3. `make`
 
 ### Installing
 
-Place executable in your path.
+`sudo make install`
 
 ### Executing program
 
-Run the executable.
+`splicer [-o|--output <file>] [file...]`
 
 ## Help
 
