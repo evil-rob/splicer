@@ -4,6 +4,7 @@
 #include <string.h>
 #include <errno.h>
 #include "splicer.h"
+#include "quoted_printable.h"
 #include "stack.h"
 
 #define BUFFER_SIZE 512
@@ -34,6 +35,7 @@ ssize_t process_file(char *in_fn, char *out_fn)
 
     Stack_t *fstack = stack_create(MAX_DEPTH, sizeof(FILE *));
     do {
+        FILE* (*file_handler)(char *fn, char *mode) = NULL;
         while ( fgets(buffer, sizeof(buffer)/2, input) )
         {
             /* Scan line to see if there is a directive. If there is
@@ -86,12 +88,16 @@ ssize_t process_file(char *in_fn, char *out_fn)
                         if ( strcmp(token, "I") == 0 )
                         {
                             state = INCLUDE;
+                            file_handler = open_helper;
                             break;
                         }
                         else if ( strcmp(token, "B") == 0 )
                             state = BINARY;
                         else if ( strcmp(token, "Q") == 0 )
+                        {
                             state = QUOTED;
+                            file_handler = quoted_filter;
+                        }
                         else
                             state = REJECT;
                         break;
@@ -114,15 +120,34 @@ ssize_t process_file(char *in_fn, char *out_fn)
                          * error state since open_helper() handles the failure.
                          * */
                         push(fstack, &input);
-                        input = open_helper(include_fn, "r");
+                        input = file_handler(include_fn, "r");
                         if ( input == NULL ) input = *(FILE **)pop(fstack);
                         state = TEXT;
                         goto INCLUDE_next;
 INCLUDE_err_and_break:  state = ERROR;
 INCLUDE_next:           break;
 
+                    case QUOTED:
+                        char *source_fn = strtok(NULL, "}");
+                        if ( source_fn == NULL )
+                        {
+                            err_str = "Bad or missing filename";
+                            goto QUOTED_err_and_break;
+                        }
+                        if ( stack_full(fstack) )
+                        {
+                            err_str = "Max include depth exceeded";
+                            goto QUOTED_err_and_break;
+                        }
+                        push(fstack, &input);
+                        input = file_handler(source_fn, "r");
+                        if ( input == NULL ) input = *(FILE **)pop(fstack);
+                        state = TEXT;
+                        goto QUOTED_next;
+QUOTED_err_and_break:   state = ERROR;
+QUOTED_next:            break;
+
                     case BINARY: // TODO
-                    case QUOTED: // TODO
                         err_str = "Feature not implemented yet";
                         state = ERROR;
                         break;
